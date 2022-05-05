@@ -6,60 +6,85 @@ public class PlayerMovement : MonoBehaviour
 {
     [Header("COMPONENTS")]
     public Rigidbody2D rb;
+    public ParticleSystem skateDust1;
+    public ParticleSystem skateDust2;
 
     [Header("MOVEMENT")]
     public bool isSkating = false;
+    public bool startBoost = false;
     public float moveSpeed;
     public float moveSpeedIncrease;
     public float moveSpeedDecrease;
     public float moveSpeedMaximum;
 
     [Header("ROTATION")]
+    public bool isRotating = false;
     public float rotation;
     public float rotateSpeed;
     public float rotateSpeedIncrease;
     public float rotateSpeedDecrease;
     public float rotateSpeedMaximum;
     public float rotateSpeedMinimum;
-    public float standardRotateSpeed;
+    public float rotationBoost;
 
     [Header("THRUSTING")]
     public bool isThrusting = false;
-    public float standardThrustTime;
-    public float thrustForce;
-    public float thrustDrop;
-    public float thrustMaximum;
+    public int thrustSide = 0;
+    public float thrustCooldown;
 
     public void Start()
     {
         //RESETTING VALUES
         moveSpeed = 0;
-        rotateSpeed = standardRotateSpeed;
     }
 
     public void Update()
     {
         //VELOCITY
-        rb.AddForce(transform.right * (moveSpeed + thrustForce) * Time.deltaTime);
+        if (!isRotating)
+        {
+            rb.AddForce(transform.right * moveSpeed * Time.deltaTime);
+        } else
+        {
+            rb.AddForce(transform.right * (moveSpeed * rotationBoost) * Time.deltaTime);
+        }
 
         //ROTATION INPUT
         rotation = Input.GetAxis("Horizontal") * -rotateSpeed * Time.deltaTime;
+
+        if(rotation != 0)
+        {
+            isRotating = true;
+        } else
+        {
+            isRotating = false;
+        }
 
         //MOVEMENT INPUT
         if (Input.GetKey("space"))
         {
             isSkating = true;
+
+            if (!startBoost)
+            {
+                startBoost = true;
+                if(moveSpeed < moveSpeedMaximum / 3)
+                {
+                    moveSpeed = moveSpeedMaximum / 3;
+                }
+            }
         } else
         {
             isSkating = false;
+            startBoost = false;
         }
 
         Move();
 
-        //THRUST
-        if (!isThrusting && isSkating)
+        //THRUSTING
+        if (isSkating && !isThrusting)
         {
-            StartCoroutine(Thrusting());
+            StartCoroutine(Thrust());
         }
     }
     private void LateUpdate()
@@ -72,27 +97,27 @@ public class PlayerMovement : MonoBehaviour
         if (isSkating)
         {
             //MOVEMENT INCREASE
-            if(moveSpeed <= moveSpeedMaximum)
+            if(moveSpeed < moveSpeedMaximum)
             {
                 moveSpeed += moveSpeedIncrease * Time.deltaTime;
             }
 
-            if(rotateSpeed >= rotateSpeedMinimum)
+            if(rotateSpeed < rotateSpeedMaximum)
             {
-                rotateSpeed -= rotateSpeedDecrease * Time.deltaTime;
+                rotateSpeed += rotateSpeedIncrease * Time.deltaTime;
             }
    
         } else
         {
             //MOVEMENT DECREASE
-            if (moveSpeed >= 0)
+            if (moveSpeed > 0)
             {
                 moveSpeed -= moveSpeedDecrease * Time.deltaTime;
             }
 
-            if(rotateSpeed <= rotateSpeedMaximum)
+            if(rotateSpeed > rotateSpeedMinimum)
             {
-                rotateSpeed += rotateSpeedIncrease * Time.deltaTime;
+                rotateSpeed -= rotateSpeedDecrease * Time.deltaTime;
             }
         }
 
@@ -102,19 +127,32 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    IEnumerator Thrust()
+    {
+        isThrusting = true;
+        SkateDust();
+        yield return new WaitForSecondsRealtime(thrustCooldown);
+        isThrusting = false;
+    }
+
     private void Rotate()
     {
         transform.Rotate(0f, 0f, rotation);
     }
 
-    IEnumerator Thrusting()
+    private void SkateDust()
     {
-        isThrusting = true;
-
-        Debug.Log("THRUST");
-
-        yield return new WaitForSecondsRealtime(standardThrustTime + moveSpeed/180);
-
-        isThrusting = false;
+        if(thrustSide == 1)
+        {
+            thrustSide = 0;
+            skateDust1.Play();
+        } else
+        {
+            if(thrustSide == 0)
+            {
+                thrustSide = 1;
+                skateDust2.Play();
+            }
+        }
     }
 }
