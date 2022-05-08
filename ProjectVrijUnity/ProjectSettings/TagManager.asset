@@ -6,6 +6,9 @@ TagManager:
   tags:
   - Circle
   - UnlitCritter
+  - CircleCollider
+  - CircleComplete
+  - LitCritter
   layers:
   - Default
   - TransparentFX
@@ -15,8 +18,8 @@ TagManager:
   - UI
   - PostProcessing
   - Player
-  - 
-  - 
+  - CircleMask
+  - CircleComplete
   - 
   - 
   - 
@@ -48,6 +51,9 @@ TagManager:
     locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Critter
+    uniqueID: 2602744881
     locked: 0
   - name: Player
     uniqueID: 1436257773

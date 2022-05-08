@@ -4,24 +4,27 @@ using UnityEngine;
 
 public class Circle : MonoBehaviour
 {
+    [Header("COMPONENTS")]
     public GameObject circle;
     public EdgeCollider2D edgeCollider2D;
     public LineRenderer lineRenderer;
 
-    private bool init = false;
+    [Header("INITIALISATION")]
+    public bool init = false;
 
-    //Fading
+    [Header("INFORMATION")]
+    public List<Vector2> circlePositions;
+    public List<GameObject> capturedCritters;
+
+    [Header("FADING")]
     public float fadeCooldown;
     public int health;
     public bool fading = false;
 
-    //Collected information
-    public List<Vector2> circlePositions;
-
     void Update()
     {
         //Check if line has turned into a circle
-        if(circle.tag == "Circle" && !init)
+        if (circle.tag == "Circle" && !init)
         {
             CircleInitialise();
         }
@@ -29,12 +32,13 @@ public class Circle : MonoBehaviour
         //Fading lines.
         if (circle.tag != "Circle" && !fading)
         {
-            if(health <= 0)
+            if (health <= 0)
             {
                 Destroy(circle);
-            } else
+            }
+            else
             {
-                //StartCoroutine(Fade());
+                StartCoroutine(Fade());
             }
         }
     }
@@ -47,7 +51,7 @@ public class Circle : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         circlePositions = player.GetComponent<DrawAction>().paintPositions;
 
-        //Locating largest X and Y points in the list
+        //Locating largest X and Y points in the list and farthest distance
         float xMax = circlePositions[0].x;
         float xMin = circlePositions[0].x;
         float yMax = circlePositions[0].y;
@@ -59,18 +63,64 @@ public class Circle : MonoBehaviour
             yMax = Mathf.Max(circlePositions[i].y, yMax);
             yMin = Mathf.Min(circlePositions[i].y, yMin);
         }
-        Debug.Log("X: " + xMax + ", " + xMin);
-        Debug.Log("Y: " + yMax + ", " + yMin);
+
+        float xFarthestDistance = xMax - xMin;
+        float yFarthestDistance = yMax - yMin;
+        float farthestDistance = Mathf.Max(xFarthestDistance, yFarthestDistance);
+        farthestDistance = Mathf.Abs(farthestDistance);
 
         //Tagging critters inside box
         GameObject[] critters = GameObject.FindGameObjectsWithTag("UnlitCritter");
+        LayerMask mask = LayerMask.GetMask("CircleMask");
+
         for (int c = 0; c < critters.Length; c++)
         {
             GameObject thisCritter = critters[c];
             if (edgeCollider2D.bounds.Contains(thisCritter.transform.position))
             {
-                Debug.Log(thisCritter);
+                //Raycasting around critter
+                int castScore = 0;
+                Transform critterPos = thisCritter.transform;
+
+                for (int r = 0; r <= 360; r += 1)
+                {
+                    //Rotating critter
+                    critterPos.rotation = Quaternion.Euler(new Vector3(0, 0, r));
+
+                    //Raycast
+                    RaycastHit2D hit = Physics2D.Raycast(critterPos.position, critterPos.TransformDirection(Vector2.up), farthestDistance + 5, mask);
+
+                    //Debug.DrawRay(critterPos.position, critterPos.TransformDirection(Vector2.up) * (farthestDistance + 5), Color.green, 5);
+
+                    if (hit != false && hit.collider != null)
+                    {
+                        //Check if the hit collider is actually this circle's collider
+                        if (hit.collider == edgeCollider2D)
+                        {
+                            castScore += 1;
+                        }
+                    }
+                }
+
+                if (castScore == 361)
+                {
+                    thisCritter.tag = "LitCritter";
+                    capturedCritters.Add(thisCritter);
+                }
             }
+        }
+
+        GameObject collider = this.transform.Find("Collider").gameObject;
+        collider.layer = LayerMask.NameToLayer("CircleComplete");
+
+        if (capturedCritters.Count > 1)
+        {
+            Debug.Log("The player captured " + capturedCritters.Count + " critters at " + player.transform.position + "!");
+        }
+
+        if (capturedCritters.Count == 1)
+        {
+            Debug.Log("The player captured " + capturedCritters.Count + " critter at " + player.transform.position + "!");
         }
     }
 
@@ -78,16 +128,6 @@ public class Circle : MonoBehaviour
     {
         fading = true;
         health -= 1;
-
-        //Colorfade
-        int a = 50;
-        Color color = new Color(52, 33, 100, a);
-        Material mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-        mat.SetColor("_BaseColor", color);
-        lineRenderer.material = mat;
-
-
-
 
         yield return new WaitForSecondsRealtime(fadeCooldown);
         fading = false;

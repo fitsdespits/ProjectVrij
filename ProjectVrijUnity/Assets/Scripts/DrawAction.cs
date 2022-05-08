@@ -4,23 +4,26 @@ using UnityEngine;
 
 public class DrawAction : MonoBehaviour
 {
+    [Header("COMPONENTS")]
     public GameObject linePrefab;
     public GameObject currentLine;
-
     public LineRenderer lineRenderer;
     public EdgeCollider2D edgeCollider2D;
+
+    [Header("CURRRENT POSITIONS")]
     public List<Vector2> paintPositions;
+
+    [Header("PAINT SPACING")]
     public float paintSpacing;
+
+    [Header("OTHER")]
     public bool drawing = false;
-
     public Transform playerPosition;
-
-    //Visuals
     public Material lineFinished;
 
     public void Update()
     {
-        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown("s"))
+        if (Input.GetMouseButtonDown(0))
         {
             CreateLine();
             drawing = true;
@@ -72,12 +75,16 @@ public class DrawAction : MonoBehaviour
         {
             if(PaintPostionInRange(paintPositions[i], paintPositions[paintPositions.Count - 1]))
             {
-                Debug.Log(i +":  Circle completed at " + paintPositions[i]);
                 drawing = false;
                 lineRenderer.material = lineFinished;
 
                 //Tag line as circle
                 currentLine.tag = "Circle";
+                GameObject collider = currentLine.transform.Find("Collider").gameObject;
+                collider.tag = "CircleCollider";
+
+                //setting correct layer
+                collider.layer = LayerMask.NameToLayer("CircleMask");
 
                 //Resetting edges
                 edgeCollider2D.Reset();

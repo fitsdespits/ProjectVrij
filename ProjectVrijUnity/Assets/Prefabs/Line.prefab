@@ -146,10 +146,12 @@ MonoBehaviour:
   circle: {fileID: 4732268746870483850}
   edgeCollider2D: {fileID: 346432628980872454}
   lineRenderer: {fileID: 7872026453459534284}
+  init: 0
+  circlePositions: []
+  capturedCritters: []
   fadeCooldown: 1
   health: 60
   fading: 0
-  circlePositions: []
 --- !u!1 &7867619627877029562
 GameObject:
   m_ObjectHideFlags: 0
