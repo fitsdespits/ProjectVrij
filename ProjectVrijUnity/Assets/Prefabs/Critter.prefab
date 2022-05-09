@@ -221,6 +221,7 @@ MonoBehaviour:
   critter: {fileID: 5512905612648258738}
   rb: {fileID: -6119250010312158073}
   flash: {fileID: 2100000, guid: eadffd9924f1bfa419a5e752c7938855, type: 2}
+  player: {fileID: 0}
   cMode: 1
   cPersonality: 0
   cLight: {fileID: 0}
@@ -230,11 +231,16 @@ MonoBehaviour:
   freezeDuration: 0.08
   flashed: 0
   inAction: 0
+  inversed: 0
   xRandom: 0
   yRandom: 0
   speedRandom: 0
   actionTimeRandom: 0
   breakRandom: 0
+  sleepDistance: 25
+  fadeDistance: 2
+  fading: 0
+  fadeCooldown: 0.0125
 --- !u!114 &6261254510226399082
 MonoBehaviour:
   m_ObjectHideFlags: 0

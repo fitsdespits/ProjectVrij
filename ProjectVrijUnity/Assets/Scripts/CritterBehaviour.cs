@@ -9,6 +9,7 @@ public class CritterBehaviour : MonoBehaviour
     public GameObject critter;
     public Rigidbody2D rb;
     public Material flash;
+    public GameObject player;
 
     [Header("INFORMATION")]
     public int cMode = 1;
@@ -33,64 +34,106 @@ public class CritterBehaviour : MonoBehaviour
     public float actionTimeRandom;
     public float breakRandom;
 
+    [Header("PERFORMANCE")]
+    public float sleepDistance;
+    public float fadeDistance;
+    public bool fading = false;
+    public float fadeCooldown;
+
     public void Awake()
     {
         cLight = critter.GetComponentInChildren<Light2D>();
+        player = GameObject.FindGameObjectWithTag("Player");
 
         //Deciding personality
-        cPersonality = Random.Range(0, 6);
+        cPersonality = Random.Range(0, 7);
     }
 
     public void Update()
-    {   
-        //Lighting
-        if (critter.tag == "LitCritter" && cMode != 0)
+    {
+        if (cMode != 0)
         {
-            cMode = 0;
-            BrightGlow();
-            if (!flashed)
+            //Lighting
+            if (critter.tag == "LitCritter" && cMode != 2)
             {
-                flashed = true;
-                StartCoroutine(DoFreeze());
+                cMode = 2;
+                BrightGlow();
+                if (!flashed)
+                {
+                    flashed = true;
+                    StartCoroutine(DoFreeze());
+                }
             }
-        }
 
-        if (cLight.intensity < wantedIntensity && Mathf.Abs(cLight.intensity - wantedIntensity) > 0.02)
-        {
-            cLight.intensity += lightSpeed * Time.deltaTime;
-        }
+            if (cLight.intensity < wantedIntensity && Mathf.Abs(cLight.intensity - wantedIntensity) > 0.02)
+            {
+                cLight.intensity += lightSpeed * Time.deltaTime;
+            }
 
-        if (cLight.intensity > wantedIntensity && Mathf.Abs(cLight.intensity - wantedIntensity) > 0.02)
-        {
-            cLight.intensity -= lightSpeed * Time.deltaTime;
-        }
+            if (cLight.intensity > wantedIntensity && Mathf.Abs(cLight.intensity - wantedIntensity) > 0.02)
+            {
+                cLight.intensity -= lightSpeed * Time.deltaTime;
+            }
 
-        if (cLight.pointLightOuterRadius < wantedRadius && Mathf.Abs(cLight.pointLightOuterRadius - wantedRadius) > 0.02)
-        {
-            cLight.pointLightOuterRadius += lightSpeed * 20 * Time.deltaTime;
-        }
+            if (cLight.pointLightOuterRadius < wantedRadius && Mathf.Abs(cLight.pointLightOuterRadius - wantedRadius) > 0.02)
+            {
+                cLight.pointLightOuterRadius += lightSpeed * 20 * Time.deltaTime;
+            }
 
-        if (cLight.pointLightOuterRadius > wantedRadius && Mathf.Abs(cLight.pointLightOuterRadius - wantedRadius) > 0.02)
-        {
-            cLight.pointLightOuterRadius -= lightSpeed * 20 * Time.deltaTime;
-        }
+            if (cLight.pointLightOuterRadius > wantedRadius && Mathf.Abs(cLight.pointLightOuterRadius - wantedRadius) > 0.02)
+            {
+                cLight.pointLightOuterRadius -= lightSpeed * 20 * Time.deltaTime;
+            }
 
-        //Starting movement
-        if(!inAction)
-        {
-            inAction = true;
-            StartCoroutine(Movement());
-        }
+            //Starting movement
+            if (!inAction)
+            {
+                inAction = true;
+                StartCoroutine(Movement());
+            }
 
-        //Actually performing the movement
-        if(cMode == 1)
-        {
-            rb.AddForce(new Vector2(xRandom, yRandom) * (speedRandom * 5) * Time.deltaTime);
+            //Actually performing the movement
+            if (cMode == 1)
+            {
+                rb.AddForce(new Vector2(xRandom, yRandom) * (speedRandom * 7) * Time.deltaTime);
+            }
+            else
+            if (cMode == 2)
+            {
+                rb.AddForce(new Vector2(xRandom, yRandom) * (speedRandom) * Time.deltaTime);
+            }
+
+            //Disable movement if critter is not within range of the player
+            if (Vector3.Distance(critter.transform.position, player.transform.position) > sleepDistance)
+            {
+                cMode = 0;
+            }
+
+            //If player gets to close to critter, they fade for clarity
+            if(Vector3.Distance(critter.transform.position, player.transform.position) < fadeDistance && !fading)
+            {
+                fading = true;
+                StartCoroutine(Fade());
+            } 
+            else
+            if (!fading)
+            {
+                fading = true;
+                StartCoroutine(Unfade());
+            }
+
         } 
         else
-        if (cMode == 0)
+        if(Vector3.Distance(critter.transform.position, player.transform.position) < sleepDistance)
         {
-            rb.AddForce(new Vector2(xRandom, yRandom) * (speedRandom) * Time.deltaTime);
+            if (critter.tag == "LitCritter")
+            {
+                cMode = 2;
+            }
+            else
+            {
+                cMode = 1;
+            }
         }
     }
 
@@ -121,6 +164,28 @@ public class CritterBehaviour : MonoBehaviour
         critterRenderer.material = originalMaterial;
     }
 
+    IEnumerator Fade()
+    {
+        SpriteRenderer critterRenderer = GetComponent<SpriteRenderer>();
+
+        if (critterRenderer.color.a > 0.5f)
+        {
+            critterRenderer.color = new Color(critterRenderer.color.r, critterRenderer.color.g, critterRenderer.color.b, critterRenderer.color.a - 0.01f);
+        }
+        yield return new WaitForSecondsRealtime(fadeCooldown * Vector3.Distance(critter.transform.position, player.transform.position));
+        fading = false;
+    }
+    IEnumerator Unfade()
+    {
+        SpriteRenderer critterRenderer = GetComponent<SpriteRenderer>();
+
+        if (critterRenderer.color.a < 1)
+        {
+            critterRenderer.color = new Color(critterRenderer.color.r, critterRenderer.color.g, critterRenderer.color.b, critterRenderer.color.a + 0.01f);
+        }
+        yield return new WaitForSecondsRealtime(fadeCooldown * Vector3.Distance(critter.transform.position, player.transform.position));
+        fading = false;
+    }
     IEnumerator Movement()
     {
         if(cPersonality == 0)
@@ -156,6 +221,12 @@ public class CritterBehaviour : MonoBehaviour
         if (cPersonality == 5)
         {
             Personality5();
+        }
+        else
+        
+        if (cPersonality == 6)
+        {
+            Personality6();
         }
 
         yield return new WaitForSecondsRealtime(actionTimeRandom);
@@ -219,6 +290,14 @@ public class CritterBehaviour : MonoBehaviour
         speedRandom = Random.Range(10f, 70f);
         actionTimeRandom = Random.Range(1f, 8f);
         breakRandom = Random.Range(2f, 12f);
+    }
+    private void Personality6() //cant stop wont stop
+    {
+        xRandom = Random.Range(-1f, 1f);
+        yRandom = Random.Range(-1f, 1f);
+        speedRandom = 100f;
+        actionTimeRandom = Random.Range(1.5f, 3f);
+        breakRandom = 0;
     }
 
     public void OnCollisionEnter2D(Collision2D collision)
